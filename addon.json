@@ -1,0 +1,14 @@
+{
+	"title"	:	"Evolve2",
+	"type"	:	"tool",
+	"author":	"Xandaros",
+	"tags"	:	[ "admin" ],
+	"description":	"",
+	"ignore"	:
+	[
+		".git*",
+		".gitignore",
+		"license",
+		"readme.md",
+	]
+}
