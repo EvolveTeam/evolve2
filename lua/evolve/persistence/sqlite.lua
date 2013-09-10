@@ -21,10 +21,20 @@ end
 local function formatFilter(filter)
 	local ret = ""
 	for k,v in pairs(filter) do
-		local value = v
+		local value
+		if isstring(v) then
+			value = "\"" .. v .. "\""
+		else
+			value = tostring(v)
+		end
 		local operator = "="
 		if istable(v) then
 			value = v[1]
+			if isstring(value) then
+				value = "\"" .. value .. "\""
+			else
+				value = tostring(value)
+			end
 			if v[2] == 1 then
 				operator = "="
 			elseif v[2] == 2 then
@@ -146,16 +156,34 @@ function PLUGIN:insert(table, data)
 	
 	for k,v in pairs(data) do
 		columns = columns .. ", " .. k
-		values = values .. ", " .. tostring(v)
+		values = values .. ", "
+		if isstring(v) then
+			values = values .. "\"" .. v .. "\""
+		else
+			values = values .. tostring(v)
+		end
 	end
 	columns = columns:sub(3)
 	values = values:sub(3)
 	
-	sql.Query("INSERT INTO " .. table .. " (" .. columns .. ") VALUES (" .. values .. ")")
+	local ret = sql.Query("INSERT INTO " .. table .. " (" .. columns .. ") VALUES (" .. values .. ")")
+	if ret == false then
+		error(sql.LastError())
+	end
 end
 
 function PLUGIN:get(table, filter)
-	return sql.Query("SELECT * FROM " .. table .. " WHERE " .. formatFilter(filter))[1]
+	local ret = sql.Query("SELECT * FROM " .. table .. " WHERE " .. formatFilter(filter))
+	
+	if ret == nil then
+		-- Empty result
+		return nil
+	elseif ret == false then
+		-- Error
+		error(sql.LastError())
+	end
+	
+	return ret[1]
 end
 
 function PLUGIN:delete(table, id)
@@ -171,6 +199,10 @@ function PLUGIN:update(table, data, filter)
 	values = values:sub(3)
 	
 	sql.Query("UPDATE " .. table .. " SET " .. values .. " WHERE " .. formatFilter(filter))
+end
+
+function PLUGIN:exists(table)
+	return sql.TableExists(table)
 end
 
 evolve:registerPersistence(PLUGIN)
