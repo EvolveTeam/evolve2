@@ -173,4 +173,4 @@ function PLUGIN:update(table, data, filter)
 	sql.Query("UPDATE " .. table .. " SET " .. values .. " WHERE " .. formatFilter(filter))
 end
 
-test = PLUGIN
+evolve:registerPersistence(PLUGIN)

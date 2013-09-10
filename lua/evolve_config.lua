@@ -1,1 +1,0 @@
-evolve.alwaysOwner = true		-- You are always owner on your own server (singleplayer or listenserver)
