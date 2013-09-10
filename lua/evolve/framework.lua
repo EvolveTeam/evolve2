@@ -46,14 +46,14 @@ if persistence:exists("evolve_versions") then
 	end
 	if cur_ver < dbVersion then
 		print("Evolve: Updating database")
-		local switch-ft = function(ver) -- Since there is neither switch nor computed goto...
+		local switchft = function(ver) -- Since there is neither switch nor computed goto...
 			--if-elseifs to compare with ver
 			
 			if ver < dbVersion then
-				switch-ft(ver+1)
+				switchft(ver+1)
 			end
 		end
-		switch-ft(cur_ver)
+		switchft(cur_ver)
 	end
 else
 	-- Database does not exist, create it
@@ -61,3 +61,5 @@ else
 	persistence:createTable("evolve_versions", {["name"] = "VARCHAR", ["version"] = "INT"}, "name") 
 	persistence:insert("evolve_versions", {["name"] = "framework", ["version"] = dbVersion})
 end
+
+print("Evolve initialized successfully")
