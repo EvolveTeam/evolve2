@@ -2,14 +2,16 @@ evolve = {}
 evolve.persistences = {}
 evolve.persistence = nil
 evolve.plugins = {}
+evolve.playerData = {}
 
 include("evolve/config.lua")
 include("evolve/databaseConfig.lua")
 
-local dbVersion = 1
+local dbVersion = 2
 
 local persistences = evolve.persistences
 local plugins = evolve.plugins
+local playerData = evolve.playerData
 
 
 ---------------- Load persistence frameworks and load the selected one ----------------
@@ -17,7 +19,7 @@ local plugins = evolve.plugins
 
 -- Every persistence plugin will call this to register itself
 function evolve:registerPersistence(plugin)
-	persistences[plugin.ID] = plugin
+	persistences[plugin.id] = plugin
 end
 
 -- Load all persistence plugins
@@ -27,7 +29,7 @@ for k,v in pairs(files) do
 end
 
 -- Set the selected framework
-evolve.persistence = persistences[evolve.config.DB.ID]
+evolve.persistence = persistences[evolve.config.DB.id]
 if evolve.persistence == nil then
 	-- TODO: This should probably display a dialog on the clients, as well
 	error("Evolve: Could not load persistence framework")
@@ -55,6 +57,15 @@ if persistence:exists("evolve_versions") then
 			--if-elseifs to compare with ver
 			if ver == 1 then
 				persistence:createTable("evolve_plugins", {["name"] = "VARCHAR", ["status"] = "TINYINT"}, "name")
+			elseif ver == 2 then
+				persistence:createTable("evolve_rank", {["id"] = "INT", ["title"] = "VARCHAR", ["super"] = "INT", ["garryrank"] = "VARCHAR", ["icon"] = "VARCHAR", ["color_r"] = "INT", ["color_g"] = "INT", ["color_b"] = "INT"}, "id")
+				persistence:insert("evolve_rank", {["id"] = 0, ["title"] = "Guest", ["garryrank"] = "user", ["icon"] = "user", ["color_r"] = 127, ["color_g"] = 127, ["color_b"] = 127})
+				persistence:insert("evolve_rank", {["id"] = 1, ["title"] = "Respected", ["garryrank"] = "user", ["icon"] = "user_add", ["color_r"] = 0, ["color_g"] = 255, ["color_b"] = 0})
+				persistence:insert("evolve_rank", {["id"] = 2, ["title"] = "Admin", ["garryrank"] = "admin", ["icon"] = "shield", ["color_r"] = 255, ["color_g"] = 127, ["color_b"] = 0})
+				persistence:insert("evolve_rank", {["id"] = 3, ["title"] = "Superadmin", ["garryrank"] = "superadmin", ["icon"] = "shield_add", ["color_r"] = 255, ["color_g"] = 0, ["color_b"] = 0})
+				persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["garryrank"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
+				
+				persistence:createTable("evolve_player", {["uid"] = "BIGINT", ["lastNick"] = "VARCHAR", ["lastJoined"] = "BIGINT", ["playtime"] = "INT", ["rank"] = "INT"}, "uid")
 			end
 			
 			if ver < dbVersion then
@@ -71,7 +82,17 @@ else
 	print("Evolve: Creating new database")
 	persistence:createTable("evolve_versions", {["name"] = "VARCHAR", ["version"] = "INT"}, "name") 
 	persistence:insert("evolve_versions", {["name"] = "framework", ["version"] = dbVersion})
+	
 	persistence:createTable("evolve_plugins", {["name"] = "VARCHAR", ["status"] = "TINYINT"}, "name")
+	
+	persistence:createTable("evolve_rank", {["id"] = "INT", ["title"] = "VARCHAR", ["super"] = "INT", ["usergroup"] = "VARCHAR", ["icon"] = "VARCHAR", ["color_r"] = "INT", ["color_g"] = "INT", ["color_b"] = "INT"}, "id")
+	persistence:insert("evolve_rank", {["id"] = 0, ["title"] = "Guest", ["usergroup"] = "user", ["icon"] = "user", ["color_r"] = 127, ["color_g"] = 127, ["color_b"] = 127})
+	persistence:insert("evolve_rank", {["id"] = 1, ["title"] = "Respected", ["usergroup"] = "user", ["icon"] = "user_add", ["color_r"] = 0, ["color_g"] = 255, ["color_b"] = 0})
+	persistence:insert("evolve_rank", {["id"] = 2, ["title"] = "Admin", ["usergroup"] = "admin", ["icon"] = "shield", ["color_r"] = 255, ["color_g"] = 127, ["color_b"] = 0})
+	persistence:insert("evolve_rank", {["id"] = 3, ["title"] = "Superadmin", ["usergroup"] = "superadmin", ["icon"] = "shield_add", ["color_r"] = 255, ["color_g"] = 0, ["color_b"] = 0})
+	persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["usergroup"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
+	
+	persistence:createTable("evolve_player", {["uid"] = "BIGINT", ["lastNick"] = "VARCHAR", ["lastJoined"] = "BIGINT", ["playtime"] = "BIGINT", ["rank"] = "INT"}, "uid")
 end
 
 
@@ -79,8 +100,12 @@ end
 
 -- About the same as persistence, see above
 
+local prePlugins = {}
+local prePluginsCount = 0
+
 function evolve:registerPlugin(plugin)
-	plugins[plugin.ID] = plugin
+	prePlugins[plugin.id] = plugin
+	prePluginsCount = prePluginsCount + 1
 end
 
 local files,_ = file.Find("lua/evolve/plugins/*", "GAME")
@@ -89,7 +114,7 @@ for k,v in pairs(files) do
 end
 
 -- Set installed/enabled status of plugins accordingly
-for id,plugin in pairs(plugins) do
+for id,plugin in pairs(prePlugins) do
 	local data = persistence:get("evolve_plugins", {["name"] = id})
 	if data == nil then
 		-- New plugin
@@ -101,6 +126,45 @@ for id,plugin in pairs(plugins) do
 	plugin:init()
 end
 
+-- Check for dependencies - This process is SLOW, can it be improved? (Only occurs on startup, but still)
+while true do
+	local before = prePluginsCount
+	
+	for id,plugin in pairs(prePlugins) do
+		if plugin.dependencies == nil then
+			plugins[plugin.id] = plugin
+			prePlugins[plugin.id] = nil
+			prePluginsCount = prePluginsCount - 1
+		else
+			for _,dep in pairs(plugin.dependencies) do
+				if plugins[dep] == nil or plugins[dep].status ~= 2 then
+					goto continue_1
+				end
+			end
+			plugins[plugin.id] = plugin
+			prePlugins[plugin.id] = nil
+			prePluginsCount = prePluginsCount - 1
+			::continue_1::
+		end
+	end
+
+	if prePluginsCount == 0 or before == prePluginsCount then break end
+end
+
+-- Set unmet dependencies status of plugins accordingly
+for id, plugin in pairs(prePlugins) do
+	print("Unmet dependencies in plugin: " .. id)
+	plugin.status = 3
+	plugins[id] = plugin
+	prePlugins[id] = nil
+end
+
+-- Clean up
+files = nil
+prePlugins = nil
+prePluginsCount = nil
+
+
 -- Execute onEnabled on enabled plugins
 for id,plugin in pairs(plugins) do
 	if plugin.status == 2 then
@@ -110,6 +174,56 @@ end
 
 
 ---------------- Rank management ----------------
+-- Register players upon connect
+
+hook.Add("PlayerInitialSpawn", "evolve_framework", function(player)
+	local uid = player:UniqueID()
+	
+	playerData[uid] = {}
+	
+	local time = os.time()
+	local data = persistence:get("evolve_player", {["uid"] = uid})
+
+	if data == nil then
+		-- Player connected for the very first time
+
+		persistence:insert("evolve_player", {["uid"] = uid, ["lastNick"] = player:Nick(), ["lastJoined"] = time, ["playtime"] = 0, ["rank"] = 0})
+		playerData[uid] = {
+			lastNick = "",
+			lastJoined = 0,
+			joined = time,
+			playtime = 0,
+			rank = 0
+		}
+	else
+		playerData[uid] = {
+			lastNick = data["lastNick"],
+			lastJoined = data["lastJoined"],
+			joined = time,
+			playtime = data["playtime"],
+			rank = data["rank"]
+		}
+	end
+
+	if game.SinglePlayer() and evolve.config.alwaysOwner then -- Singleplayer and set to make owner - make him owner
+		playerData[uid].rank = 4
+	end
+end)
+
+local playerDisconnected = function(player)
+	local uid = player:UniqueID()
+	local data = playerData[uid]
+
+	persistence:update("evolve_player", {["lastNick"] = player:Nick(), ["lastJoined"] = data.joined, ["playtime"] = data.playtime + (os.time() - data.joined)}, {["uid"] = uid})
+end
+
+hook.Add("PlayerDisconnected", "evolve_framework", playerDisconnected)
+hook.Add("Shutdown", "evolve_framework", function()
+	for k,v in pairs(player.GetAll()) do
+		playerDisconnected(v)	-- This might cause players to be saved twice, needs further testing
+					-- Does this even work?
+	end
+end)
 
 
 ---------------- API functions provided by evolve ----------------

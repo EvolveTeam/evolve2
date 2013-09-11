@@ -1,5 +1,5 @@
 local PLUGIN = {
-	ID = "SQLite",
+	id = "SQLite",
 }
 
 local function SQLiteType(MySQLType)
@@ -194,11 +194,19 @@ function PLUGIN:update(table, data, filter)
 	local values = ""
 	
 	for k,v in pairs(data) do
-		values = values .. ", " .. k .. "=" .. tostring(v)
+		values = values .. ", " .. k .. "="
+		if isstring(v) then
+			values = values .. "\"" .. v .. "\""
+		else
+			values = values .. tostring(v)
+		end
 	end
 	values = values:sub(3)
 	
-	sql.Query("UPDATE " .. table .. " SET " .. values .. " WHERE " .. formatFilter(filter))
+	local ret = sql.Query("UPDATE " .. table .. " SET " .. values .. " WHERE " .. formatFilter(filter))
+	if ret == false then
+		error(sql.LastError())
+	end
 end
 
 function PLUGIN:exists(table)

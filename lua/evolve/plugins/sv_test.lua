@@ -1,7 +1,8 @@
 local PLUGIN = {
-	ID = "test",
+	id = "test",
 	title = "Test",
 	description = "A plugin to test various things. Will be removed",
+	dependencies = {"test2"}
 }
 
 function PLUGIN:init()
