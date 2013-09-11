@@ -58,12 +58,12 @@ if persistence:exists("evolve_versions") then
 			if ver == 1 then
 				persistence:createTable("evolve_plugins", {["name"] = "VARCHAR", ["status"] = "TINYINT"}, "name")
 			elseif ver == 2 then
-				persistence:createTable("evolve_rank", {["id"] = "INT", ["title"] = "VARCHAR", ["super"] = "INT", ["garryrank"] = "VARCHAR", ["icon"] = "VARCHAR", ["color_r"] = "INT", ["color_g"] = "INT", ["color_b"] = "INT"}, "id")
-				persistence:insert("evolve_rank", {["id"] = 0, ["title"] = "Guest", ["garryrank"] = "user", ["icon"] = "user", ["color_r"] = 127, ["color_g"] = 127, ["color_b"] = 127})
-				persistence:insert("evolve_rank", {["id"] = 1, ["title"] = "Respected", ["garryrank"] = "user", ["icon"] = "user_add", ["color_r"] = 0, ["color_g"] = 255, ["color_b"] = 0})
-				persistence:insert("evolve_rank", {["id"] = 2, ["title"] = "Admin", ["garryrank"] = "admin", ["icon"] = "shield", ["color_r"] = 255, ["color_g"] = 127, ["color_b"] = 0})
-				persistence:insert("evolve_rank", {["id"] = 3, ["title"] = "Superadmin", ["garryrank"] = "superadmin", ["icon"] = "shield_add", ["color_r"] = 255, ["color_g"] = 0, ["color_b"] = 0})
-				persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["garryrank"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
+				persistence:createTable("evolve_rank", {["id"] = "INT", ["title"] = "VARCHAR", ["super"] = "INT", ["usergroup"] = "VARCHAR", ["icon"] = "VARCHAR", ["color_r"] = "INT", ["color_g"] = "INT", ["color_b"] = "INT"}, "id")
+				persistence:insert("evolve_rank", {["id"] = 0, ["title"] = "Guest", ["usergroup"] = "user", ["icon"] = "user", ["color_r"] = 127, ["color_g"] = 127, ["color_b"] = 127})
+				persistence:insert("evolve_rank", {["id"] = 1, ["title"] = "Respected", ["super"] = 0, ["usergroup"] = "user", ["icon"] = "user_add", ["color_r"] = 0, ["color_g"] = 255, ["color_b"] = 0})
+				persistence:insert("evolve_rank", {["id"] = 2, ["title"] = "Admin", ["super"] = 1, ["usergroup"] = "admin", ["icon"] = "shield", ["color_r"] = 255, ["color_g"] = 127, ["color_b"] = 0})
+				persistence:insert("evolve_rank", {["id"] = 3, ["title"] = "Superadmin", ["super"] = 2, ["usergroup"] = "superadmin", ["icon"] = "shield_add", ["color_r"] = 255, ["color_g"] = 0, ["color_b"] = 0})
+				persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["super"] = 3, ["usergroup"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
 				
 				persistence:createTable("evolve_player", {["uid"] = "BIGINT", ["lastNick"] = "VARCHAR", ["lastJoined"] = "BIGINT", ["playtime"] = "INT", ["rank"] = "INT"}, "uid")
 			end
@@ -87,10 +87,10 @@ else
 	
 	persistence:createTable("evolve_rank", {["id"] = "INT", ["title"] = "VARCHAR", ["super"] = "INT", ["usergroup"] = "VARCHAR", ["icon"] = "VARCHAR", ["color_r"] = "INT", ["color_g"] = "INT", ["color_b"] = "INT"}, "id")
 	persistence:insert("evolve_rank", {["id"] = 0, ["title"] = "Guest", ["usergroup"] = "user", ["icon"] = "user", ["color_r"] = 127, ["color_g"] = 127, ["color_b"] = 127})
-	persistence:insert("evolve_rank", {["id"] = 1, ["title"] = "Respected", ["usergroup"] = "user", ["icon"] = "user_add", ["color_r"] = 0, ["color_g"] = 255, ["color_b"] = 0})
-	persistence:insert("evolve_rank", {["id"] = 2, ["title"] = "Admin", ["usergroup"] = "admin", ["icon"] = "shield", ["color_r"] = 255, ["color_g"] = 127, ["color_b"] = 0})
-	persistence:insert("evolve_rank", {["id"] = 3, ["title"] = "Superadmin", ["usergroup"] = "superadmin", ["icon"] = "shield_add", ["color_r"] = 255, ["color_g"] = 0, ["color_b"] = 0})
-	persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["usergroup"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
+	persistence:insert("evolve_rank", {["id"] = 1, ["title"] = "Respected", ["super"] = 0, ["usergroup"] = "user", ["icon"] = "user_add", ["color_r"] = 0, ["color_g"] = 255, ["color_b"] = 0})
+	persistence:insert("evolve_rank", {["id"] = 2, ["title"] = "Admin", ["super"] = 1, ["usergroup"] = "admin", ["icon"] = "shield", ["color_r"] = 255, ["color_g"] = 127, ["color_b"] = 0})
+	persistence:insert("evolve_rank", {["id"] = 3, ["title"] = "Superadmin", ["super"] = 2, ["usergroup"] = "superadmin", ["icon"] = "shield_add", ["color_r"] = 255, ["color_g"] = 0, ["color_b"] = 0})
+	persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["super"] = 3, ["usergroup"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
 	
 	persistence:createTable("evolve_player", {["uid"] = "BIGINT", ["lastNick"] = "VARCHAR", ["lastJoined"] = "BIGINT", ["playtime"] = "BIGINT", ["rank"] = "INT"}, "uid")
 end
