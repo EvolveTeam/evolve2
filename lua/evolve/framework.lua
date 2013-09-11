@@ -123,7 +123,7 @@ for id,plugin in pairs(prePlugins) do
 	else
 		plugin.status = tonumber(data["status"])
 	end
-	plugin:init()
+	if plugin.init then plugin:init() end
 end
 
 -- Check for dependencies - This process is SLOW, can it be improved? (Only occurs on startup, but still)
@@ -168,7 +168,7 @@ prePluginsCount = nil
 -- Execute onEnabled on enabled plugins
 for id,plugin in pairs(plugins) do
 	if plugin.status == 2 then
-		plugin:onEnable()
+		if plugin.onEnable then plugin:onEnable() end
 	end
 end
 
@@ -228,5 +228,9 @@ end)
 
 ---------------- API functions provided by evolve ----------------
 
+
+function evolve:getPlugin(id)
+	return plugins[id]
+end
 
 print("Evolve initialized successfully")
