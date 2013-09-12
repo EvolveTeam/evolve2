@@ -7,11 +7,69 @@ evolve.playerData = {}
 include("evolve/config.lua")
 include("evolve/databaseConfig.lua")
 
-local dbVersion = 2
+local dbVersion = 3
 
 local persistences = evolve.persistences
 local plugins = evolve.plugins
 local playerData = evolve.playerData
+
+local persistence
+
+
+---------------- API functions provided by evolve ----------------
+
+
+function evolve:getPlugin(id)
+	return plugins[id]
+end
+
+function evolve:getRank(id)
+	print("Getting rank: " .. id .. "(" .. type(id) .. ")")
+	return persistence:get("evolve_rank", {["id"] = id})
+end
+
+-- Name: Identifier of perm
+-- Title: Displayed name of perm
+-- Description: Description of perm
+-- Options: Table containing the options in the format {title, title, ...}
+function evolve:registerPermission(name, title, description, options)
+	persistence:begin()
+	
+	persistence:insert("evolve_permission", {["name"] = name, ["title"] = title, ["description"] = description})
+	for k,v in pairs(options) do
+		persistence:insert("evolve_permission_option", {["id"] = k, ["perm"] = name, ["title"] = v})
+	end
+	
+	persistence:commit()
+end
+
+function evolve:unregisterPermission(name)
+	persistence:delete("evolve_permission_option", {["perm"] = name})
+	persistence:delete("evolve_permission", {["name"] = name})
+end
+
+-- Rank: ID of rank
+-- Perm: Name of permission
+-- Option: The value of the permission [0 is inherited]
+function evolve:givePermission(rank, perm, option)
+	persistence:insert("evolve_rank_permission", {["rank"] = rank, ["perm"] = perm, ["option"] = option})
+end
+
+-- Defaults to 1, make sure 1 disables your functionality associated with this perm
+function evolve:getPermission(rank, perm)
+	print("getPermission " .. rank .. " " .. perm)
+	local ret = persistence:get("evolve_rank_permission", {["rank"] = rank, ["perm"] = perm})
+	if ret == nil or tonumber(ret["option"]) == 0 then
+		local super = evolve:getRank(rank)["super"]
+		
+		if super ~= "NULL" then
+			return evolve:getPermission(super, perm)
+		else
+			return 1
+		end
+	end
+	return tonumber(ret["option"])
+end
 
 
 ---------------- Load persistence frameworks and load the selected one ----------------
@@ -34,7 +92,7 @@ if evolve.persistence == nil then
 	-- TODO: This should probably display a dialog on the clients, as well
 	error("Evolve: Could not load persistence framework")
 end
-local persistence = evolve.persistence
+persistence = evolve.persistence
 
 
 ---------------- Initialize/update database if it is not already ----------------
@@ -66,6 +124,10 @@ if persistence:exists("evolve_versions") then
 				persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["super"] = 3, ["usergroup"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
 				
 				persistence:createTable("evolve_player", {["uid"] = "BIGINT", ["lastNick"] = "VARCHAR", ["lastJoined"] = "BIGINT", ["playtime"] = "INT", ["rank"] = "INT"}, "uid")
+			elseif ver == 3 then
+				persistence:createTable("evolve_permission", {["name"] = "VARCHAR", ["title"] = "VARCHAR", ["description"] = "VARCHAR"}, "name")
+				persistence:createTable("evolve_permission_option", {["id"] = "INT", ["perm"] = "VARCHAR", ["title"] = "VARCHAR"}, {"id", "perm"})
+				persistence:createTable("evolve_rank_permission", {["rank"] = "INT", ["perm"] = "VARCHAR", ["option"] = "INT"}, {"rank", "perm"})
 			end
 			
 			if ver < dbVersion then
@@ -93,6 +155,10 @@ else
 	persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["super"] = 3, ["usergroup"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
 	
 	persistence:createTable("evolve_player", {["uid"] = "BIGINT", ["lastNick"] = "VARCHAR", ["lastJoined"] = "BIGINT", ["playtime"] = "BIGINT", ["rank"] = "INT"}, "uid")
+	
+	persistence:createTable("evolve_permission", {["name"] = "VARCHAR", ["title"] = "VARCHAR", ["description"] = "VARCHAR"}, "name")
+	persistence:createTable("evolve_permission_option", {["id"] = "INT", ["perm"] = "VARCHAR", ["title"] = "VARCHAR"}, {"id", "perm"})
+	persistence:createTable("evolve_rank_permission", {["rank"] = "INT", ["perm"] = "VARCHAR", ["option"] = "INT"}, {"rank", "perm"})
 end
 
 
@@ -224,13 +290,5 @@ hook.Add("Shutdown", "evolve_framework", function()
 					-- Does this even work?
 	end
 end)
-
-
----------------- API functions provided by evolve ----------------
-
-
-function evolve:getPlugin(id)
-	return plugins[id]
-end
 
 print("Evolve initialized successfully")

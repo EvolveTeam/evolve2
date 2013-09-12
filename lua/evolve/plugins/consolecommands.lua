@@ -18,6 +18,10 @@ function PLUGIN:registerCommand(command, func)
 	PLUGIN.commands[command] = func
 end
 
+function PLUGIN:unregisterCommand(command)
+	PLUGIN.commands[command] = nil
+end
+
 function PLUGIN:onEnable()
 	concommand.Add("ev", PLUGIN.command)
 	concommand.Add("evs", PLUGIN.command)

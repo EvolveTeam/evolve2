@@ -186,8 +186,8 @@ function PLUGIN:get(table, filter)
 	return ret[1]
 end
 
-function PLUGIN:delete(table, id)
-	sql.Query("DELETE FROM " .. table .. " WHERE id=" .. id)
+function PLUGIN:delete(table, filter)
+	sql.Query("DELETE FROM " .. table .. " WHERE " .. formatFilter(filter))
 end
 
 function PLUGIN:update(table, data, filter)
