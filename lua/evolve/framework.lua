@@ -80,6 +80,74 @@ function evolve:getPlayerPermission(uid, perm)
 	return evolve:getRankPermission(rank, perm)
 end
 
+function evolve:enablePlugin(plugin)
+	local plug = evolve:getPlugin(plugin)
+	if plug == nil then return false end
+	if plug.status ~= 1 then return false end
+	
+	-- Check for dependencies
+	if plug.dependencies ~= nil then
+		for _, pl in pairs(plug.dependencies) do
+			local found = false
+			for k,v in pairs(plugins) do
+				if k == pl then
+					if v.status ~= 2 then return false end
+					found = true
+					break
+				end
+			end
+			if found == false then return false end
+		end
+	end
+	
+	if plug.onEnable then plug:onEnable() end
+	plug.status = 2
+	return true
+end
+
+-- TODO: Disallow disabling if there are dependencies
+function evolve:disablePlugin(plugin)
+	local plug = evolve:getPlugin(plugin)
+	if plug == nil then return false end
+	if plug.status ~= 2 then return false end
+	
+	-- Check for plugins depending on the one to be disabled
+	for id,pl in pairs(plugins) do
+		if pl.dependencies ~= nil and pl.status == 2 then
+			for k,v in pairs(pl.dependencies) do
+				if v == plugin then return false end
+			end
+		end
+	end
+	
+	if plug.onDisable then plug:onDisable() end
+	plug.status = 1
+	return true
+end
+
+function evolve:installPlugin(plugin)
+	local plug = evolve:getPlugin(plugin)
+	if plug == nil then return false end
+
+	if plug.status ~= 0 and plug.status ~= 3 then return false end
+	
+	if plug.onInstall then plug:onInstall() end
+	plug.status = 1
+	return true
+end
+
+function evolve:uninstallPlugin(plugin)
+	local plug = evolve:getPlugin(plugin)
+	if plug == nil then return false end
+
+	if plug.status == 0 then return false end
+	if plug.status == 2 then evolve:disablePlugin(plugin) end -- Disable first
+	
+	if plug.onUninstall then plug:onUninstall() end
+	plug.status = 0
+	return true
+end
+
 
 ---------------- Load persistence frameworks and load the selected one ----------------
 
