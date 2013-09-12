@@ -23,8 +23,12 @@ function evolve:getPlugin(id)
 	return plugins[id]
 end
 
+function evolve:getPlayer(uid)
+	local playerData = persistence:get("evolve_player", {["uid"] = uid})
+	return playerData
+end
+
 function evolve:getRank(id)
-	print("Getting rank: " .. id .. "(" .. type(id) .. ")")
 	return persistence:get("evolve_rank", {["id"] = id})
 end
 
@@ -57,19 +61,23 @@ function evolve:givePermission(rank, perm, option)
 end
 
 -- Defaults to 1, make sure 1 disables your functionality associated with this perm
-function evolve:getPermission(rank, perm)
-	print("getPermission " .. rank .. " " .. perm)
+function evolve:getRankPermission(rank, perm)
 	local ret = persistence:get("evolve_rank_permission", {["rank"] = rank, ["perm"] = perm})
 	if ret == nil or tonumber(ret["option"]) == 0 then
 		local super = evolve:getRank(rank)["super"]
 		
 		if super ~= "NULL" then
-			return evolve:getPermission(super, perm)
+			return evolve:getRankPermission(super, perm)
 		else
 			return 1
 		end
 	end
 	return tonumber(ret["option"])
+end
+
+function evolve:getPlayerPermission(uid, perm)
+	local rank = tonumber(evolve:getPlayer(uid)["rank"])
+	return evolve:getRankPermission(rank, perm)
 end
 
 
@@ -273,7 +281,7 @@ hook.Add("PlayerInitialSpawn", "evolve_framework", function(player)
 	end
 
 	if game.SinglePlayer() and evolve.config.alwaysOwner then -- Singleplayer and set to make owner - make him owner
-		playerData[uid].rank = 4
+		persistence:update("evolve_player", {["rank"] = 4}, {["uid"] = 1})
 	end
 end)
 
