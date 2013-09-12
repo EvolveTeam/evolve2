@@ -1,4 +1,4 @@
-PLUGIN = {
+local PLUGIN = {
 	id = "consolecommands",
 	title = "Console commands",
 	description = "Provides API for console commands",

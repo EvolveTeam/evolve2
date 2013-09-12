@@ -102,6 +102,7 @@ function evolve:enablePlugin(plugin)
 	
 	if plug.onEnable then plug:onEnable() end
 	plug.status = 2
+	persistence:update("evolve_plugins", {["status"] = 2}, {["name"] = plugin})
 	return true
 end
 
@@ -122,6 +123,7 @@ function evolve:disablePlugin(plugin)
 	
 	if plug.onDisable then plug:onDisable() end
 	plug.status = 1
+	persistence:update("evolve_plugins", {["status"] = 1}, {["name"] = plugin})
 	return true
 end
 
@@ -133,6 +135,7 @@ function evolve:installPlugin(plugin)
 	
 	if plug.onInstall then plug:onInstall() end
 	plug.status = 1
+	persistence:update("evolve_plugins", {["status"] = 1}, {["name"] = plugin})
 	return true
 end
 
@@ -145,6 +148,7 @@ function evolve:uninstallPlugin(plugin)
 	
 	if plug.onUninstall then plug:onUninstall() end
 	plug.status = 0
+	persistence:update("evolve_plugins", {["status"] = 0}, {["name"] = plugin})
 	return true
 end
 
@@ -353,17 +357,17 @@ hook.Add("PlayerInitialSpawn", "evolve_framework", function(player)
 	end
 end)
 
-local playerDisconnected = function(player)
+function evolve.savePlayer(player)
 	local uid = player:UniqueID()
 	local data = playerData[uid]
 
 	persistence:update("evolve_player", {["lastNick"] = player:Nick(), ["lastJoined"] = data.joined, ["playtime"] = data.playtime + (os.time() - data.joined)}, {["uid"] = uid})
 end
 
-hook.Add("PlayerDisconnected", "evolve_framework", playerDisconnected)
+hook.Add("PlayerDisconnected", "evolve_framework", evolve.savePlayer)
 hook.Add("Shutdown", "evolve_framework", function()
 	for k,v in pairs(player.GetAll()) do
-		playerDisconnected(v)	-- This might cause players to be saved twice, needs further testing
+		evolve.savePlayer(v)	-- TODO: This might cause players to be saved twice, needs further testing
 					-- Does this even work?
 	end
 end)
