@@ -46,6 +46,7 @@ end
 function evolve:unregisterPermission(name)
 	persistence:delete("evolve_permission_option", {["perm"] = name})
 	persistence:delete("evolve_permission", {["name"] = name})
+	persistence:delete("evolve_rank_permission", {["perm"] = name})
 end
 
 -- Rank: ID of rank
