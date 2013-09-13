@@ -7,12 +7,18 @@ local PLUGIN = {
 }
 
 function PLUGIN.Call(ply, cmd, args, secret, str)
+	if evolve:getPlayerPermission(ply:UniqueID(), "plugin") ~= 2 then
+		evolve:notify(ply, evolve.colors.red, evolve.constants.notallowed)
+		return
+	end
 	if #args < 2 then
-		print("Usage: plugin <install/uninstall/enable/disable> <plugin>")
+		evolve:notify(ply, evolve.colors.red, "Usage:", evolve.colors.white, " plugin <install/uninstall/enable/disable> <plugin>")
+		return
 	end
 	local plugin = args[2]
 	if evolve:getPlugin(plugin) == nil then
-		print("Could not find plugin: " .. plugin)
+		evolve:notify(ply, evolve.colors.red, "Could not find plugin: ", plugin)
+		return
 	end
 	local action
 	if args[1] == "install" then
