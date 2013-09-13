@@ -15,6 +15,24 @@ local playerData = evolve.playerData
 
 local persistence
 
+-- Constants
+evolve.colors = {}
+evolve.constants = {}
+
+evolve.colors.blue = Color( 98, 176, 255, 255 )
+evolve.colors.red = Color( 255, 62, 62, 255 )
+evolve.colors.white = color_white
+evolve.constants.notallowed = "You are not allowed to do that."
+evolve.constants.noplayers = "No matching players with an equal or lower immunity found."
+evolve.constants.noplayers2 = "No matching players with a lower immunity found."
+evolve.constants.noplayersnoimmunity = "No matching players found."
+
+
+---------------- Setup Net Messages ----------------
+
+
+util.AddNetworkString("evolve_notify")
+
 
 ---------------- API functions provided by evolve ----------------
 
@@ -150,6 +168,39 @@ function evolve:uninstallPlugin(plugin)
 	plug.status = 0
 	persistence:update("evolve_plugins", {["status"] = 0}, {["name"] = plugin})
 	return true
+end
+
+function evolve:notify(...)
+	local args = {...}
+	local ply
+	if type(args[1]) == "Player" or istable(args[1]) then
+		if args[1].r == nil then -- Make sure we don't send anything to a color instead of a player
+			ply = args[1]
+			table.remove(args, 1)
+		end
+	end
+	
+	net.Start("evolve_notify")
+		net.WriteUInt(#args, 8)
+		for k,v in pairs(args) do
+			if isstring(v) then
+				net.WriteBit(false)
+				net.WriteString(v)
+			elseif istable(v) then
+				net.WriteBit(true)
+				net.WriteUInt(v.r, 8)
+				net.WriteUInt(v.g, 8)
+				net.WriteUInt(v.b, 8)
+				net.WriteUInt(v.a, 8)
+			else
+				error("Unsupported parameter")
+			end
+		end
+	if ply == nil then
+		net.Broadcast()
+	else
+		net.Send(ply)
+	end
 end
 
 

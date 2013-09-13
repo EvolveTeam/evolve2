@@ -2,6 +2,7 @@ local PLUGIN = {
 	id = "consolecommands",
 	title = "Console commands",
 	description = "Provides API for console commands",
+	author = "Xandaros",
 	commands = {}
 }
 
