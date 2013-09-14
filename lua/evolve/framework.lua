@@ -7,7 +7,7 @@ evolve.playerData = {}
 include("evolve/config.lua")
 include("evolve/databaseConfig.lua")
 
-local dbVersion = 3
+local dbVersion = 4
 
 local persistences = evolve.persistences
 local plugins = evolve.plugins
@@ -42,12 +42,80 @@ function evolve:getPlugin(id)
 end
 
 function evolve:getPlayer(uid)
+	if not uid then return nil end
 	local playerData = persistence:get("evolve_player", {["uid"] = uid})
 	return playerData
 end
 
 function evolve:getRank(id)
 	return persistence:get("evolve_rank", {["id"] = id})
+end
+
+function evolve:getPlayerRank(uid)
+	local playerData = evolve:getPlayer(uid)
+	return evolve:getRank(playerData["rank"])
+end
+
+function evolve:isPlayerAbove(ply1, ply2)
+	local ply1rank = evolve:getPlayerRank(ply1)
+	local ply2rank = evolve:getPlayerRank(ply2)
+	
+	return ply1rank["immunity"] > ply2rank["immunity"]
+end
+
+function evolve:isPlayerAboveOrEqual(ply1, ply2)
+	local ply1rank = evolve:getPlayerRank(ply1)
+	local ply2rank = evolve:getPlayerRank(ply2)
+	
+	return ply1rank["immunity"] >= ply2rank["immunity"]
+end
+
+local function findPlayers(name, def, mode)
+	local function namesMatch(nick, name)
+		if name == "*" then return true end
+		return string.find(nick:lower(), name:lower())
+	end
+	
+	-- mode: 0 - any player, 1 - below, 2 - below or equal,
+	local ret = {}
+	local perfect
+	for _,player in pairs(player.GetAll()) do
+		perfect = false
+		if player:Nick():lower() == name:lower() then
+			perfect = true
+		end
+		if not namesMatch(player:Nick(), name) then
+			goto continue_2
+		end
+		if mode == 0 then
+			if perfect then return {player} end
+			table.insert(ret, player)
+		elseif mode == 1 then
+			if evolve:isPlayerAbove(def, player:UniqueID()) then
+				if perfect then return {player} end
+				table.insert(ret, player)
+			end
+		elseif mode == 2 then
+			if evolve:isPlayerAboveOrEqual(def, player:UniqueID()) then
+				if perfect then return {player} end
+				table.insert(ret, player)
+			end
+		end
+		::continue_2::
+	end
+	return ret
+end
+
+function evolve:findPlayers(name, def)
+	return findPlayers(name, def, 0)
+end
+
+function evolve:findPlayersBelow(name, def)
+	return findPlayers(name, def, 1)
+end
+
+function evolve:findPlayersBelowOrEqual(name, def)
+	return findPlayers(name, def, 2)
 end
 
 -- Name: Identifier of perm
@@ -260,6 +328,8 @@ if persistence:exists("evolve_versions") then
 				persistence:createTable("evolve_permission", {["name"] = "VARCHAR", ["title"] = "VARCHAR", ["description"] = "VARCHAR"}, "name")
 				persistence:createTable("evolve_permission_option", {["id"] = "INT", ["perm"] = "VARCHAR", ["title"] = "VARCHAR"}, {"id", "perm"})
 				persistence:createTable("evolve_rank_permission", {["rank"] = "INT", ["perm"] = "VARCHAR", ["option"] = "INT"}, {"rank", "perm"})
+			elseif ver == 4 then
+				persistence:addColumn("evolve_rank", "immunity", "INT")
 			end
 			
 			if ver < dbVersion then
@@ -279,12 +349,12 @@ else
 	
 	persistence:createTable("evolve_plugins", {["name"] = "VARCHAR", ["status"] = "TINYINT"}, "name")
 	
-	persistence:createTable("evolve_rank", {["id"] = "INT", ["title"] = "VARCHAR", ["super"] = "INT", ["usergroup"] = "VARCHAR", ["icon"] = "VARCHAR", ["color_r"] = "INT", ["color_g"] = "INT", ["color_b"] = "INT"}, "id")
-	persistence:insert("evolve_rank", {["id"] = 0, ["title"] = "Guest", ["usergroup"] = "user", ["icon"] = "user", ["color_r"] = 127, ["color_g"] = 127, ["color_b"] = 127})
-	persistence:insert("evolve_rank", {["id"] = 1, ["title"] = "Respected", ["super"] = 0, ["usergroup"] = "user", ["icon"] = "user_add", ["color_r"] = 0, ["color_g"] = 255, ["color_b"] = 0})
-	persistence:insert("evolve_rank", {["id"] = 2, ["title"] = "Admin", ["super"] = 1, ["usergroup"] = "admin", ["icon"] = "shield", ["color_r"] = 255, ["color_g"] = 127, ["color_b"] = 0})
-	persistence:insert("evolve_rank", {["id"] = 3, ["title"] = "Superadmin", ["super"] = 2, ["usergroup"] = "superadmin", ["icon"] = "shield_add", ["color_r"] = 255, ["color_g"] = 0, ["color_b"] = 0})
-	persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["super"] = 3, ["usergroup"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255})
+	persistence:createTable("evolve_rank", {["id"] = "INT", ["title"] = "VARCHAR", ["super"] = "INT", ["usergroup"] = "VARCHAR", ["icon"] = "VARCHAR", ["color_r"] = "INT", ["color_g"] = "INT", ["color_b"] = "INT", ["immunity"] = "INT"}, "id")
+	persistence:insert("evolve_rank", {["id"] = 0, ["title"] = "Guest", ["usergroup"] = "user", ["icon"] = "user", ["color_r"] = 127, ["color_g"] = 127, ["color_b"] = 127, ["immunity"] = 0})
+	persistence:insert("evolve_rank", {["id"] = 1, ["title"] = "Respected", ["super"] = 0, ["usergroup"] = "user", ["icon"] = "user_add", ["color_r"] = 0, ["color_g"] = 255, ["color_b"] = 0, ["immunity"] = 1})
+	persistence:insert("evolve_rank", {["id"] = 2, ["title"] = "Admin", ["super"] = 1, ["usergroup"] = "admin", ["icon"] = "shield", ["color_r"] = 255, ["color_g"] = 127, ["color_b"] = 0, ["immunity"] = 2})
+	persistence:insert("evolve_rank", {["id"] = 3, ["title"] = "Superadmin", ["super"] = 2, ["usergroup"] = "superadmin", ["icon"] = "shield_add", ["color_r"] = 255, ["color_g"] = 0, ["color_b"] = 0, ["immunity"] = 3})
+	persistence:insert("evolve_rank", {["id"] = 4, ["title"] = "Owner", ["super"] = 3, ["usergroup"] = "superadmin", ["icon"] = "key", ["color_r"] = 0, ["color_g"] = 127, ["color_b"] = 255, ["immunity"] = 4})
 	
 	persistence:createTable("evolve_player", {["uid"] = "BIGINT", ["lastNick"] = "VARCHAR", ["lastJoined"] = "BIGINT", ["playtime"] = "BIGINT", ["rank"] = "INT"}, "uid")
 	

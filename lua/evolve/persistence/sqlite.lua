@@ -173,13 +173,15 @@ function PLUGIN:insert(table, data)
 end
 
 function PLUGIN:get(table, filter)
-	local ret = sql.Query("SELECT * FROM " .. table .. " WHERE " .. formatFilter(filter))
+	local query = "SELECT * FROM " .. table .. " WHERE " .. formatFilter(filter)
+	local ret = sql.Query(query)
 	
 	if ret == nil then
 		-- Empty result
 		return nil
 	elseif ret == false then
 		-- Error
+		print(query)
 		error(sql.LastError())
 	end
 	

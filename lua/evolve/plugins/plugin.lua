@@ -7,12 +7,16 @@ local PLUGIN = {
 }
 
 function PLUGIN.Call(ply, cmd, args, secret, str)
+	local function printUsage()
+		evolve:notify(ply, evolve.colors.red, "Usage:", evolve.colors.white, " plugin <install/uninstall/enable/disable> <plugin>")
+	end
+
 	if evolve:getPlayerPermission(ply:UniqueID(), "plugin") ~= 2 then
 		evolve:notify(ply, evolve.colors.red, evolve.constants.notallowed)
 		return
 	end
 	if #args < 2 then
-		evolve:notify(ply, evolve.colors.red, "Usage:", evolve.colors.white, " plugin <install/uninstall/enable/disable> <plugin>")
+		printUsage()
 		return
 	end
 	local plugin = args[2]
@@ -33,6 +37,9 @@ function PLUGIN.Call(ply, cmd, args, secret, str)
 	elseif args[1] == "disable" then
 		evolve:disablePlugin(plugin)
 		action = "disabled"
+	else
+		printUsage()
+		return
 	end
 	if not secret then
 		evolve:notify(evolve.colors.blue, ply:Nick(), evolve.colors.white, " has ", action, " plugin ", evolve.colors.red, plugin)
@@ -40,7 +47,7 @@ function PLUGIN.Call(ply, cmd, args, secret, str)
 end
 
 function PLUGIN:onInstall()
-	evolve:registerPermission("plugin", "Plugin Management", "Allows the user to (un)install and en-/disable plugins", {"disabled", "enabled"})
+	evolve:registerPermission("plugin", "Plugin Management", "Allows the player to (un)install and en-/disable plugins", {"disabled", "enabled"})
 end
 
 function PLUGIN:onUninstall()
