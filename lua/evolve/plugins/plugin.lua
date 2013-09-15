@@ -25,22 +25,29 @@ function PLUGIN.Call(ply, cmd, args, secret, str)
 		return
 	end
 	local action
+	local ret
 	if args[1] == "install" then
-		evolve:installPlugin(plugin)
+		ret = evolve:installPlugin(plugin)
 		action = "installed"
 	elseif args[1] == "uninstall" then
-		evolve:uninstallPlugin(plugin)
+		ret = evolve:uninstallPlugin(plugin)
 		action = "uninstalled"
 	elseif args[1] == "enable" then
-		evolve:enablePlugin(plugin)
+		ret = evolve:enablePlugin(plugin)
 		action = "enabled"
 	elseif args[1] == "disable" then
-		evolve:disablePlugin(plugin)
+		ret = evolve:disablePlugin(plugin)
 		action = "disabled"
 	else
 		printUsage()
 		return
 	end
+	
+	if not ret then
+		evolve:notify(ply, evolve.colors.red, "Plugin could not be " .. action .. ".")
+		return
+	end
+	
 	if not secret then
 		evolve:notify(evolve.colors.blue, ply:Nick(), evolve.colors.white, " has ", action, " plugin ", evolve.colors.red, plugin)
 	end

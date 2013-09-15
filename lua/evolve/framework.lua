@@ -44,11 +44,12 @@ end
 function evolve:getPlayer(uid)
 	if not uid then return nil end
 	local playerData = persistence:get("evolve_player", {["uid"] = uid})
-	return playerData
+	return playerData and playerData[1] or nil
 end
 
 function evolve:getRank(id)
-	return persistence:get("evolve_rank", {["id"] = id})
+	local ret = persistence:get("evolve_rank", {["id"] = id})
+	return ret and ret[1] or nil
 end
 
 function evolve:getPlayerRank(uid)
@@ -68,6 +69,10 @@ function evolve:isPlayerAboveOrEqual(ply1, ply2)
 	local ply2rank = evolve:getPlayerRank(ply2)
 	
 	return ply1rank["immunity"] >= ply2rank["immunity"]
+end
+
+function evolve:setPlayerRank(ply, rank)
+	persistence:update("evolve_player", {["rank"] = rank}, {["uid"] = ply})
 end
 
 local function findPlayers(name, def, mode)
@@ -106,6 +111,10 @@ local function findPlayers(name, def, mode)
 	return ret
 end
 
+function evolve:findRanks(title)
+	return persistence:get("evolve_rank", {["title"] = {title, 7}})
+end
+
 function evolve:findPlayers(name, def)
 	return findPlayers(name, def, 0)
 end
@@ -142,14 +151,15 @@ end
 -- Rank: ID of rank
 -- Perm: Name of permission
 -- Option: The value of the permission [0 is inherited]
-function evolve:givePermission(rank, perm, option)
+function evolve:givePermission(rank, perm, option) -- TODO: update if already present
 	persistence:insert("evolve_rank_permission", {["rank"] = rank, ["perm"] = perm, ["option"] = option})
 end
 
 -- Defaults to 1, make sure 1 disables your functionality associated with this perm
 function evolve:getRankPermission(rank, perm)
 	local ret = persistence:get("evolve_rank_permission", {["rank"] = rank, ["perm"] = perm})
-	if ret == nil or tonumber(ret["option"]) == 0 then
+
+	if ret == nil or tonumber(ret[1]["option"]) == 0 then
 		local super = evolve:getRank(rank)["super"]
 		
 		if super ~= "NULL" then
@@ -158,7 +168,7 @@ function evolve:getRankPermission(rank, perm)
 			return 1
 		end
 	end
-	return tonumber(ret["option"])
+	return tonumber(ret[1]["option"])
 end
 
 function evolve:getPlayerPermission(uid, perm)
@@ -300,7 +310,7 @@ persistence = evolve.persistence
 
 if persistence:exists("evolve_versions") then
 	-- Database exists, check for necessary updates
-	local cur_ver = tonumber(persistence:get("evolve_versions", {["name"]="framework"})["version"])
+	local cur_ver = tonumber(persistence:get("evolve_versions", {["name"]="framework"})[1]["version"])
 	if cur_ver > dbVersion then
 		-- Downgrading evolve is a bad idea... abort
 		error("Evolve: You are using an older evolve version than your database supports. Please update evolve.")
@@ -389,7 +399,7 @@ for id,plugin in pairs(prePlugins) do
 		persistence:insert("evolve_plugins", {["name"] = id, ["status"] = 0})
 		plugin.status = 0
 	else
-		plugin.status = tonumber(data["status"])
+		plugin.status = tonumber(data[1]["status"])
 	end
 	if plugin.init then plugin:init() end
 end
@@ -464,6 +474,7 @@ hook.Add("PlayerInitialSpawn", "evolve_framework", function(player)
 			rank = 0
 		}
 	else
+		data = data[1]
 		playerData[uid] = {
 			lastNick = data["lastNick"],
 			lastJoined = data["lastJoined"],

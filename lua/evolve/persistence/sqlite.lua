@@ -23,7 +23,7 @@ local function formatFilter(filter)
 	for k,v in pairs(filter) do
 		local value
 		if isstring(v) then
-			value = "\"" .. v .. "\""
+			value = "'" .. v .. "'"
 		else
 			value = tostring(v)
 		end
@@ -31,7 +31,7 @@ local function formatFilter(filter)
 		if istable(v) then
 			value = v[1]
 			if isstring(value) then
-				value = "\"" .. value .. "\""
+				value = "'" .. value .. "'"
 			else
 				value = tostring(value)
 			end
@@ -158,7 +158,7 @@ function PLUGIN:insert(table, data)
 		columns = columns .. ", " .. k
 		values = values .. ", "
 		if isstring(v) then
-			values = values .. "\"" .. v .. "\""
+			values = values .. "'" .. v .. "'"
 		else
 			values = values .. tostring(v)
 		end
@@ -176,16 +176,13 @@ function PLUGIN:get(table, filter)
 	local query = "SELECT * FROM " .. table .. " WHERE " .. formatFilter(filter)
 	local ret = sql.Query(query)
 	
-	if ret == nil then
-		-- Empty result
-		return nil
-	elseif ret == false then
+	if ret == false then
 		-- Error
 		print(query)
 		error(sql.LastError())
 	end
 	
-	return ret[1]
+	return ret
 end
 
 function PLUGIN:delete(table, filter)
@@ -198,7 +195,7 @@ function PLUGIN:update(table, data, filter)
 	for k,v in pairs(data) do
 		values = values .. ", " .. k .. "="
 		if isstring(v) then
-			values = values .. "\"" .. v .. "\""
+			values = values .. "'" .. v .. "'"
 		else
 			values = values .. tostring(v)
 		end

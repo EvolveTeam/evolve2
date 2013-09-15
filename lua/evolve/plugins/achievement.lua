@@ -43,7 +43,7 @@ function PLUGIN.Call(ply, cmd, args, secret, str)
 end
 
 function PLUGIN:onInstall()
-	evolve:registerPermission("achievement", "Achievement", "Allows the player to fake someone getting an achievement", {"disabled", "self", "below", "same", "all"})
+	evolve:registerPermission("achievement", "Achievement", "Allows the player to fake someone getting an achievement", {"disabled", "self", "below", "equal", "all"})
 end
 
 function PLUGIN:onUninstall()
